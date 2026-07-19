@@ -20,7 +20,21 @@ repositories {
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	implementation("org.springframework.boot:spring-boot-starter-validation")
+	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
+	implementation("org.springframework.security:spring-security-crypto")
+	implementation("org.springframework.security:spring-security-oauth2-jose")
+	implementation("org.postgresql:postgresql")
+	implementation("org.springframework.boot:spring-boot-starter-flyway")
+	implementation("org.flywaydb:flyway-database-postgresql")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.springframework.boot:spring-boot-webmvc-test")
+	testImplementation("org.springframework.boot:spring-boot-restclient")
+	testImplementation("org.springframework.boot:spring-boot-resttestclient")
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
+	testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
+	testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
 }
 
 tasks.withType<Test> {
