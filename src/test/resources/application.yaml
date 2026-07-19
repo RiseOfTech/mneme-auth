@@ -1,0 +1,8 @@
+mneme:
+  auth:
+    token:
+      issuer: mneme-auth
+      audience: mneme-core
+      ttl: 15m
+      kid: test-key-1
+      private-key-location: classpath:test-keys/test-private-key.pem

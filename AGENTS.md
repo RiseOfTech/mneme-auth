@@ -1,5 +1,8 @@
 # mneme-auth — Project guidelines
 
+This file extends the global engineering standards (`~/.config/opencode/AGENTS.md`).
+Project-specific rules below take precedence when they conflict with global rules.
+
 `mneme-auth` is the identity service of the **Mneme** product: it owns user registration,
 login, session lifecycle (refresh token rotation and logout), and the user's own profile.
 Product scope lives in `PROJECT.md`; the authoritative design lives in `ARCHITECTURE.md`.

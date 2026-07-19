@@ -159,17 +159,25 @@ validation and normalisation in one place.
 
 Use cases orchestrate the domain; they do not contain domain logic.
 
-MVP use cases (indicative), first slice marked:
+MVP use cases (indicative), grouped by slice:
 
-- **Register** *(slice 1)* — validate email + password, generate `UserId`, hash the
-  password, persist the `User`, open the first `Session`, issue an access token + first
-  refresh generation. Multi-write (user + session) → transactional (see boundary below).
-- **Login** *(slice 1)* — resolve the user by email, verify the password, open a new
-  `Session`, issue tokens. On failure, a single indistinguishable outcome (§7).
-- **Refresh** *(later slice)* — rotate the current refresh generation, return a new
-  access token; run reuse detection (below).
+- **Register** *(register-login slice)* — validate email + password, generate `UserId`,
+  hash the password, persist the `User`, issue an **access token only**. In this slice
+  register is a **single write** (`users`) → no `@Transactional` (see boundary below). It
+  becomes multi-write when the sessions slice adds "open the first `Session`".
+- **Login** *(register-login slice)* — resolve the user by email, verify the password,
+  issue an access token. On failure, a single indistinguishable outcome (§7).
+- **Refresh / open session** *(refresh-sessions slice)* — login/register begin opening a
+  `Session` and issuing a refresh generation here; `/refresh` rotates the current
+  generation and runs reuse detection (below). This is where register becomes multi-write
+  (user + session) and gains `@Transactional`.
 - **Logout** *(later slice)* — revoke the current session.
 - **Get / update profile** *(later slice)* — nickname and settings.
+
+> The **register-login** slice deliberately stops at the access token: no `Session`, no
+> refresh, no cookie. The token simply expires and the user logs in again until the
+> refresh-sessions slice lands. See §12 (this is an accepted intermediate state, not an
+> oversight).
 
 ### Refresh, rotation, and reuse detection (the L2 rule)
 
@@ -204,11 +212,12 @@ lifetimes below).
 ### Transaction boundary
 
 Pragmatic choice, following `mneme-core`: `@Transactional` on the application service (use
-case), and **only** where a use case performs more than one write. In MVP that is
-**register** (user + first session) and any refresh rotation that both consumes and
-inserts within one unit. Single-write use cases rely on the repository's own
-transactionality and get no annotation. Never `@Transactional` on the domain or on
-controllers.
+case), and **only** where a use case performs more than one write. In the register-login
+slice there is **no such use case** — register writes `users` only — so no `@Transactional`
+appears yet. It enters with the **refresh-sessions** slice, where **register** becomes
+multi-write (user + first session) and refresh rotation both consumes and inserts within
+one unit. Single-write use cases rely on the repository's own transactionality and get no
+annotation. Never `@Transactional` on the domain or on controllers.
 
 This is a conscious compromise: the application layer imports one Spring annotation and is
 therefore not 100% framework-free. **Escape hatch:** if multi-write use cases proliferate,
@@ -347,14 +356,18 @@ migration — non-breaking, because the lineage id already exists.
 
 Consumed and expired generations accumulate; a periodic sweep
 (`DELETE … WHERE expires_at < now()` and consumed rows past retention) reclaims them. This
-belongs to a maintenance/logout slice, **not** slice 1. Slice 1 may leave rows in place.
+belongs to a maintenance/logout slice, **not** the slice that introduces `refresh_tokens`.
+That slice may leave rows in place.
 
 ### Schema management
 
 Schema is owned by **Flyway migrations** (checked into git), one migration per slice.
 There is no `ddl-auto` object-to-schema generation to rely on — Spring Data JDBC does not
-generate DDL, so Flyway is the sole schema authority from the first slice. Slice 1's
-migration creates `users` and `refresh_tokens`.
+generate DDL, so Flyway is the sole schema authority from the first slice. The
+**register-login** slice's migration creates `users` only; `refresh_tokens` is created by
+the later **refresh/sessions** slice, which is the first to persist a session. (The two
+tables are described together above for design coherence; they do **not** land in the same
+migration.)
 
 ---
 
@@ -365,13 +378,16 @@ the validated access token (§8), not the URL. Endpoints:
 
 **`/v1/auth`** — the credential and session lifecycle (public except where noted).
 
-- `POST /v1/auth/register` — body `{ email, password }`. **201**, body `{ accessToken }`,
-  plus `Set-Cookie` with the refresh token. *(slice 1)*
-- `POST /v1/auth/login` — body `{ email, password }`. **200**, body `{ accessToken }`,
-  plus `Set-Cookie`. *(slice 1)*
+- `POST /v1/auth/register` — body `{ email, password }`. **201**, body `{ accessToken }`.
+  The refresh `Set-Cookie` is **added by the refresh-sessions slice**; in the
+  register-login slice this returns the access token only. *(register-login slice; cookie
+  in refresh-sessions slice)*
+- `POST /v1/auth/login` — body `{ email, password }`. **200**, body `{ accessToken }`.
+  Same note on the cookie as register. *(register-login slice; cookie in refresh-sessions
+  slice)*
 - `POST /v1/auth/refresh` — no body; refresh token read from the cookie. **200**, body
   `{ accessToken }`, plus a rotated `Set-Cookie`. Invalid/absent/expired/replayed →
-  **401**. *(later slice)*
+  **401**. *(refresh-sessions slice)*
 - `POST /v1/auth/logout` — no body; refresh token from the cookie. **204 always**
   (idempotent: expresses "be logged out"; does not reveal whether the token was valid),
   plus a cookie-clearing `Set-Cookie: …; Max-Age=0`. *(later slice)*
@@ -470,14 +486,14 @@ this.
   future multi-key/rotation story (or a JWKS endpoint) is non-breaking, even though only
   one key exists now.
 - **Claims (minimal — do not add):**
-    - `sub` — the `userId` (UUID string). The same id `mneme-core` returns as
-      `MeResponseDto.userId`.
-    - `iss` — `"mneme-auth"`. Verifiers check this literal.
-    - `aud` — `"mneme-core"`. Verifiers check this literal. Present so a token minted for one
-      consumer cannot be replayed at a different one if the system grows.
-    - `iat`, `exp` — issued-at and expiry; `exp = iat + 15min`.
-    - **No `jti`, no roles/scopes, no profile data.** One kind of user; access tokens are
-      not individually revocable by design (revocation is a refresh-layer concern).
+  - `sub` — the `userId` (UUID string). The same id `mneme-core` returns as
+    `MeResponseDto.userId`.
+  - `iss` — `"mneme-auth"`. Verifiers check this literal.
+  - `aud` — `"mneme-core"`. Verifiers check this literal. Present so a token minted for one
+    consumer cannot be replayed at a different one if the system grows.
+  - `iat`, `exp` — issued-at and expiry; `exp = iat + 15min`.
+  - **No `jti`, no roles/scopes, no profile data.** One kind of user; access tokens are
+    not individually revocable by design (revocation is a refresh-layer concern).
 
 ### Key management
 

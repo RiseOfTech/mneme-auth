@@ -1,6 +1,19 @@
 spring:
   application:
     name: mneme-auth
+  datasource:
+    url: ${MNEME_AUTH_DB_URL:jdbc:postgresql://localhost:5432/mneme_auth}
+    username: ${MNEME_AUTH_DB_USERNAME:mneme_auth}
+    password: ${MNEME_AUTH_DB_PASSWORD:mneme_auth}
 
 server:
   port: 8080
+
+mneme:
+  auth:
+    token:
+      issuer: mneme-auth
+      audience: mneme-core
+      ttl: 15m
+      kid: ${MNEME_AUTH_JWT_KID:dev-key-1}
+      private-key-location: ${MNEME_AUTH_PRIVATE_KEY_PATH}
