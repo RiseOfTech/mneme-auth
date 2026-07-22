@@ -7,7 +7,7 @@ spring:
     password: ${MNEME_AUTH_DB_PASSWORD:mneme_auth}
 
 server:
-  port: 8080
+  port: 8081
 
 mneme:
   auth:
@@ -17,3 +17,7 @@ mneme:
       ttl: 15m
       kid: ${MNEME_AUTH_JWT_KID:dev-key-1}
       private-key-location: ${MNEME_AUTH_PRIVATE_KEY_PATH}
+    refresh:
+      idle-window: 30d
+      cookie-name: ${MNEME_AUTH_REFRESH_COOKIE_NAME:mneme_refresh}
+      cookie-domain: ${MNEME_AUTH_REFRESH_COOKIE_DOMAIN:}

@@ -6,3 +6,7 @@ mneme:
       ttl: 15m
       kid: test-key-1
       private-key-location: classpath:test-keys/test-private-key.pem
+    refresh:
+      idle-window: 30d
+      cookie-name: mneme_refresh
+      cookie-domain:
