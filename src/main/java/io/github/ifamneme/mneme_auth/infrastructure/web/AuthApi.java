@@ -23,4 +23,9 @@ public interface AuthApi {
 	@PostMapping("/refresh")
 	ResponseEntity<AccessTokenResponse> refresh(
 			@CookieValue(name = "${mneme.auth.refresh.cookie-name}", required = false) String refreshToken);
+
+	@PostMapping("/logout")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	ResponseEntity<Void> logout(
+			@CookieValue(name = "${mneme.auth.refresh.cookie-name}", required = false) String refreshToken);
 }

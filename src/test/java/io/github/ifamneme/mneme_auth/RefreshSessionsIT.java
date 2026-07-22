@@ -45,7 +45,7 @@ class RefreshSessionsIT extends PostgresIntegrationTestBase {
 		assertThat(registerResponse.getBody().accessToken()).isNotBlank();
 		String setCookie = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 		assertThat(setCookie).contains("HttpOnly").contains("Secure").contains("SameSite=Lax")
-				.contains("Path=/v1/auth/refresh");
+				.contains("Path=/v1/auth");
 
 		ResponseEntity<AuthResponse> loginResponse = restTemplate.postForEntity(
 				"/v1/auth/login", new AuthRequest("cookie-owner@example.com", "password123"), AuthResponse.class);

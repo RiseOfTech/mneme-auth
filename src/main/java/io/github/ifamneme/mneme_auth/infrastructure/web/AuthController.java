@@ -1,5 +1,7 @@
 package io.github.ifamneme.mneme_auth.infrastructure.web;
 
+import java.time.Duration;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.github.ifamneme.mneme_auth.application.AuthTokens;
 import io.github.ifamneme.mneme_auth.application.InvalidRefreshTokenException;
 import io.github.ifamneme.mneme_auth.application.LoginUseCase;
+import io.github.ifamneme.mneme_auth.application.LogoutUseCase;
 import io.github.ifamneme.mneme_auth.application.RefreshUseCase;
 import io.github.ifamneme.mneme_auth.application.RegisterUseCase;
 import io.github.ifamneme.mneme_auth.infrastructure.config.RefreshTokenProperties;
@@ -16,21 +19,24 @@ import io.github.ifamneme.mneme_auth.infrastructure.config.RefreshTokenPropertie
 @RestController
 public class AuthController implements AuthApi {
 
-	private static final String REFRESH_COOKIE_PATH = "/v1/auth/refresh";
+	private static final String REFRESH_COOKIE_PATH = "/v1/auth";
 
 	private final RegisterUseCase registerUseCase;
 	private final LoginUseCase loginUseCase;
 	private final RefreshUseCase refreshUseCase;
+	private final LogoutUseCase logoutUseCase;
 	private final RefreshTokenProperties refreshTokenProperties;
 
 	public AuthController(
 			RegisterUseCase registerUseCase,
 			LoginUseCase loginUseCase,
 			RefreshUseCase refreshUseCase,
+			LogoutUseCase logoutUseCase,
 			RefreshTokenProperties refreshTokenProperties) {
 		this.registerUseCase = registerUseCase;
 		this.loginUseCase = loginUseCase;
 		this.refreshUseCase = refreshUseCase;
+		this.logoutUseCase = logoutUseCase;
 		this.refreshTokenProperties = refreshTokenProperties;
 	}
 
@@ -55,6 +61,12 @@ public class AuthController implements AuthApi {
 		return withRefreshCookie(tokens, HttpStatus.OK);
 	}
 
+	@Override
+	public ResponseEntity<Void> logout(String refreshToken) {
+		logoutUseCase.logout(refreshToken);
+		return withClearedRefreshCookie();
+	}
+
 	private ResponseEntity<AccessTokenResponse> withRefreshCookie(AuthTokens tokens, HttpStatus status) {
 		String cookieDomain = refreshTokenProperties.cookieDomain();
 		ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(
@@ -70,5 +82,21 @@ public class AuthController implements AuthApi {
 		return ResponseEntity.status(status)
 				.header(HttpHeaders.SET_COOKIE, cookieBuilder.build().toString())
 				.body(new AccessTokenResponse(tokens.accessToken()));
+	}
+
+	private ResponseEntity<Void> withClearedRefreshCookie() {
+		String cookieDomain = refreshTokenProperties.cookieDomain();
+		ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(refreshTokenProperties.cookieName(), "")
+				.httpOnly(true)
+				.secure(true)
+				.sameSite("Lax")
+				.path(REFRESH_COOKIE_PATH)
+				.maxAge(Duration.ZERO);
+		if (cookieDomain != null && !cookieDomain.isBlank()) {
+			cookieBuilder.domain(cookieDomain);
+		}
+		return ResponseEntity.status(HttpStatus.NO_CONTENT)
+				.header(HttpHeaders.SET_COOKIE, cookieBuilder.build().toString())
+				.build();
 	}
 }
