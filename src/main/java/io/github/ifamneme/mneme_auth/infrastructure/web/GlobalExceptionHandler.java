@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import io.github.ifamneme.mneme_auth.application.EmailAlreadyExistsException;
 import io.github.ifamneme.mneme_auth.application.InvalidCredentialsException;
+import io.github.ifamneme.mneme_auth.application.InvalidRefreshTokenException;
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -30,6 +31,11 @@ class GlobalExceptionHandler {
 	@ExceptionHandler(InvalidCredentialsException.class)
 	ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
 		return problemDetail(HttpStatus.UNAUTHORIZED, "invalid_credentials");
+	}
+
+	@ExceptionHandler(InvalidRefreshTokenException.class)
+	ProblemDetail handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+		return problemDetail(HttpStatus.UNAUTHORIZED, "invalid_refresh");
 	}
 
 	private static ProblemDetail problemDetail(HttpStatusCode status, String code) {
