@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import io.github.ifamneme.mneme_auth.application.EmailAlreadyExistsException;
 import io.github.ifamneme.mneme_auth.application.InvalidCredentialsException;
 import io.github.ifamneme.mneme_auth.application.InvalidRefreshTokenException;
 import io.github.ifamneme.mneme_auth.application.LoginUseCase;
+import io.github.ifamneme.mneme_auth.application.LogoutUseCase;
 import io.github.ifamneme.mneme_auth.application.RefreshUseCase;
 import io.github.ifamneme.mneme_auth.application.RegisterUseCase;
 import io.github.ifamneme.mneme_auth.domain.RawRefreshToken;
@@ -47,6 +49,9 @@ class AuthControllerTest {
 	@MockitoBean
 	private RefreshUseCase refreshUseCase;
 
+	@MockitoBean
+	private LogoutUseCase logoutUseCase;
+
 	@Test
 	void registerReturns201WithAccessTokenAndSetsRefreshCookie() throws Exception {
 		given(registerUseCase.register(anyString(), anyString()))
@@ -60,7 +65,7 @@ class AuthControllerTest {
 				.andExpect(cookie().value(COOKIE_NAME, "raw-refresh-123"))
 				.andExpect(cookie().httpOnly(COOKIE_NAME, true))
 				.andExpect(cookie().secure(COOKIE_NAME, true))
-				.andExpect(cookie().path(COOKIE_NAME, "/v1/auth/refresh"));
+				.andExpect(cookie().path(COOKIE_NAME, "/v1/auth"));
 	}
 
 	@Test
@@ -151,5 +156,29 @@ class AuthControllerTest {
 				.andExpect(status().isUnauthorized())
 				.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
 				.andExpect(jsonPath("$.code").value("invalid_refresh"));
+	}
+
+	@Test
+	void logoutWithAValidCookieReturns204WithAClearedCookieAndInvokesTheUseCase() throws Exception {
+		mockMvc.perform(post("/v1/auth/logout").cookie(new Cookie(COOKIE_NAME, "some-raw-token")))
+				.andExpect(status().isNoContent())
+				.andExpect(content().string(""))
+				.andExpect(cookie().value(COOKIE_NAME, ""))
+				.andExpect(cookie().maxAge(COOKIE_NAME, 0))
+				.andExpect(cookie().path(COOKIE_NAME, "/v1/auth"))
+				.andExpect(cookie().httpOnly(COOKIE_NAME, true))
+				.andExpect(cookie().secure(COOKIE_NAME, true));
+
+		verify(logoutUseCase).logout("some-raw-token");
+	}
+
+	@Test
+	void logoutWithoutACookieStillReturns204WithAClearedCookie() throws Exception {
+		mockMvc.perform(post("/v1/auth/logout"))
+				.andExpect(status().isNoContent())
+				.andExpect(cookie().value(COOKIE_NAME, ""))
+				.andExpect(cookie().maxAge(COOKIE_NAME, 0));
+
+		verify(logoutUseCase).logout(null);
 	}
 }

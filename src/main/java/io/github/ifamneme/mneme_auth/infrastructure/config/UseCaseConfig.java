@@ -6,9 +6,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.github.ifamneme.mneme_auth.application.DefaultLoginUseCase;
+import io.github.ifamneme.mneme_auth.application.DefaultLogoutUseCase;
 import io.github.ifamneme.mneme_auth.application.DefaultRefreshUseCase;
 import io.github.ifamneme.mneme_auth.application.DefaultRegisterUseCase;
 import io.github.ifamneme.mneme_auth.application.LoginUseCase;
+import io.github.ifamneme.mneme_auth.application.LogoutUseCase;
 import io.github.ifamneme.mneme_auth.application.RefreshUseCase;
 import io.github.ifamneme.mneme_auth.application.RegisterUseCase;
 import io.github.ifamneme.mneme_auth.domain.PasswordHasher;
@@ -83,5 +85,10 @@ class UseCaseConfig {
 				tokenSigner,
 				clock,
 				refreshTokenProperties.idleWindow());
+	}
+
+	@Bean
+	LogoutUseCase logoutUseCase(SessionRepository sessionRepository, TokenHasher tokenHasher, Clock clock) {
+		return new DefaultLogoutUseCase(sessionRepository, tokenHasher, clock);
 	}
 }
