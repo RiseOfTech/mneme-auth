@@ -4,7 +4,7 @@ import io.github.ifamneme.mneme_auth.domain.User;
 
 interface UserMapper {
 
-	UserRecord toRecord(User user);
+	UserRecord toRecord(User user, boolean isNew);
 
 	User toDomain(UserRecord record);
 }

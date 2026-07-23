@@ -5,14 +5,18 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.github.ifamneme.mneme_auth.application.DefaultGetProfileUseCase;
 import io.github.ifamneme.mneme_auth.application.DefaultLoginUseCase;
 import io.github.ifamneme.mneme_auth.application.DefaultLogoutUseCase;
 import io.github.ifamneme.mneme_auth.application.DefaultRefreshUseCase;
 import io.github.ifamneme.mneme_auth.application.DefaultRegisterUseCase;
+import io.github.ifamneme.mneme_auth.application.DefaultUpdateProfileUseCase;
+import io.github.ifamneme.mneme_auth.application.GetProfileUseCase;
 import io.github.ifamneme.mneme_auth.application.LoginUseCase;
 import io.github.ifamneme.mneme_auth.application.LogoutUseCase;
 import io.github.ifamneme.mneme_auth.application.RefreshUseCase;
 import io.github.ifamneme.mneme_auth.application.RegisterUseCase;
+import io.github.ifamneme.mneme_auth.application.UpdateProfileUseCase;
 import io.github.ifamneme.mneme_auth.domain.PasswordHasher;
 import io.github.ifamneme.mneme_auth.domain.RefreshTokenGenerator;
 import io.github.ifamneme.mneme_auth.domain.SessionRepository;
@@ -90,5 +94,15 @@ class UseCaseConfig {
 	@Bean
 	LogoutUseCase logoutUseCase(SessionRepository sessionRepository, TokenHasher tokenHasher, Clock clock) {
 		return new DefaultLogoutUseCase(sessionRepository, tokenHasher, clock);
+	}
+
+	@Bean
+	GetProfileUseCase getProfileUseCase(UserRepository userRepository) {
+		return new DefaultGetProfileUseCase(userRepository);
+	}
+
+	@Bean
+	UpdateProfileUseCase updateProfileUseCase(UserRepository userRepository, Clock clock) {
+		return new DefaultUpdateProfileUseCase(userRepository, clock);
 	}
 }
