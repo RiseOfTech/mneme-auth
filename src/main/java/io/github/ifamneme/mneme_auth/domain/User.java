@@ -3,7 +3,8 @@ package io.github.ifamneme.mneme_auth.domain;
 import java.time.Instant;
 import java.util.Objects;
 
-public record User(UserId id, Email email, PasswordHash passwordHash, Instant createdAt, Instant updatedAt) {
+public record User(
+		UserId id, Email email, PasswordHash passwordHash, Nickname nickname, Instant createdAt, Instant updatedAt) {
 
 	public User {
 		Objects.requireNonNull(id, "id must not be null");
@@ -14,6 +15,11 @@ public record User(UserId id, Email email, PasswordHash passwordHash, Instant cr
 	}
 
 	public static User register(UserId id, Email email, PasswordHash passwordHash, Instant now) {
-		return new User(id, email, passwordHash, now, now);
+		return new User(id, email, passwordHash, null, now, now);
+	}
+
+	public User changeNickname(Nickname nickname, Instant now) {
+		Objects.requireNonNull(nickname, "nickname must not be null");
+		return new User(id, email, passwordHash, nickname, createdAt, now);
 	}
 }

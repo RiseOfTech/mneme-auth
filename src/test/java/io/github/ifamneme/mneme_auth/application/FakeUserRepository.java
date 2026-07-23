@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import io.github.ifamneme.mneme_auth.domain.Email;
 import io.github.ifamneme.mneme_auth.domain.User;
+import io.github.ifamneme.mneme_auth.domain.UserId;
 import io.github.ifamneme.mneme_auth.domain.UserRepository;
 
 class FakeUserRepository implements UserRepository {
@@ -21,6 +22,13 @@ class FakeUserRepository implements UserRepository {
 	@Override
 	public Optional<User> findByEmail(Email email) {
 		return Optional.ofNullable(usersByEmail.get(email.value()));
+	}
+
+	@Override
+	public Optional<User> findById(UserId id) {
+		return usersByEmail.values().stream()
+				.filter(user -> user.id().equals(id))
+				.findFirst();
 	}
 
 	@Override

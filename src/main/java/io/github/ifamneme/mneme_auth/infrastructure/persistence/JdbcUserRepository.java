@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import io.github.ifamneme.mneme_auth.domain.Email;
 import io.github.ifamneme.mneme_auth.domain.User;
+import io.github.ifamneme.mneme_auth.domain.UserId;
 import io.github.ifamneme.mneme_auth.domain.UserRepository;
 
 @Repository
@@ -21,13 +22,19 @@ public class JdbcUserRepository implements UserRepository {
 
 	@Override
 	public User save(User user) {
-		UserRecord saved = springDataUserRepository.save(userMapper.toRecord(user));
+		boolean isNew = !springDataUserRepository.existsById(user.id().value());
+		UserRecord saved = springDataUserRepository.save(userMapper.toRecord(user, isNew));
 		return userMapper.toDomain(saved);
 	}
 
 	@Override
 	public Optional<User> findByEmail(Email email) {
 		return springDataUserRepository.findByEmail(email.value()).map(userMapper::toDomain);
+	}
+
+	@Override
+	public Optional<User> findById(UserId id) {
+		return springDataUserRepository.findById(id.value()).map(userMapper::toDomain);
 	}
 
 	@Override
