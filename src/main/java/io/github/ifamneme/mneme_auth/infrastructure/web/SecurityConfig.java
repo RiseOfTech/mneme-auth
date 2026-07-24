@@ -11,6 +11,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
+import java.util.List;
 
 import jakarta.servlet.DispatcherType;
 
@@ -24,7 +25,12 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import io.github.ifamneme.mneme_auth.infrastructure.config.CorsProperties;
 import io.github.ifamneme.mneme_auth.infrastructure.config.JwtProperties;
 
 @Configuration
@@ -32,8 +38,11 @@ import io.github.ifamneme.mneme_auth.infrastructure.config.JwtProperties;
 class SecurityConfig {
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
+	SecurityFilterChain securityFilterChain(
+			HttpSecurity http, JwtDecoder jwtDecoder, CorsConfigurationSource corsConfigurationSource)
+			throws Exception {
 		http.csrf(csrf -> csrf.disable())
+				.cors(cors -> cors.configurationSource(corsConfigurationSource))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(authorize -> authorize
 						// Boot forwards internally to /error whenever an unhandled MVC exception
@@ -44,12 +53,30 @@ class SecurityConfig {
 						// 401, making /v1/auth/** "public" only for requests that never throw.
 						.dispatcherTypeMatchers(DispatcherType.ERROR)
 						.permitAll()
+						// Preflight requests carry no credentials, so if they fell through to
+						// anyRequest().authenticated() below they'd get a 401 and the browser
+						// would never send the real request.
+						.requestMatchers(CorsUtils::isPreFlightRequest)
+						.permitAll()
 						.requestMatchers("/v1/auth/**", "/actuator/health")
 						.permitAll()
 						.anyRequest()
 						.authenticated())
 				.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)));
 		return http.build();
+	}
+
+	@Bean
+	CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(corsProperties.allowedOrigins());
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+		configuration.setAllowCredentials(true);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/v1/**", configuration);
+		return source;
 	}
 
 	@Bean

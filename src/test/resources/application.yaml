@@ -10,3 +10,6 @@ mneme:
       idle-window: 30d
       cookie-name: mneme_refresh
       cookie-domain:
+    cors:
+      allowed-origins:
+        - http://localhost:5173

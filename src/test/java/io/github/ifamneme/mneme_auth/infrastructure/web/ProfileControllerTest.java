@@ -32,12 +32,13 @@ import io.github.ifamneme.mneme_auth.application.ProfileView;
 import io.github.ifamneme.mneme_auth.application.UpdateProfileUseCase;
 import io.github.ifamneme.mneme_auth.domain.Nickname;
 import io.github.ifamneme.mneme_auth.domain.UserId;
+import io.github.ifamneme.mneme_auth.infrastructure.config.CorsProperties;
 import io.github.ifamneme.mneme_auth.infrastructure.config.JwtProperties;
 import io.github.ifamneme.mneme_auth.infrastructure.security.NimbusTokenSigner;
 
 @WebMvcTest(ProfileController.class)
 @Import(SecurityConfig.class)
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({ JwtProperties.class, CorsProperties.class })
 class ProfileControllerTest {
 
 	private static final String ISSUER = "mneme-auth";
