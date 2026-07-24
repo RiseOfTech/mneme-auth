@@ -21,3 +21,17 @@ mneme:
       idle-window: 30d
       cookie-name: ${MNEME_AUTH_REFRESH_COOKIE_NAME:mneme_refresh}
       cookie-domain: ${MNEME_AUTH_REFRESH_COOKIE_DOMAIN:}
+    cors:
+      allowed-origins:
+        - http://localhost:5173
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+mneme:
+  auth:
+    cors:
+      allowed-origins: []
